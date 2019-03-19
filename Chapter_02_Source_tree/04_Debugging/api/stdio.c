@@ -34,6 +34,19 @@ int printf ( char *format, ... )
 	return u_stdout->print ( text );
 }
 
+/*! Output string to console and append newline character */
+int puts ( char *input )
+{
+
+	int len;
+	
+	len = u_stdout->print( input );
+	u_stdout->print( "\n" );
+
+	return len;
+
+}
+
 /*! Formated output to error console */
 void warn ( char *format, ... )
 {
