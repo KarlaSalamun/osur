@@ -12,4 +12,4 @@ $(MODULES):
 .PHONY: clean
 clean:
 	make -C $(dir $(MODULES)) clean
-	rm -f $(OBJECTS) $(MODULES)
+	rm -f $(OBJECTS) $(MODULE)
