@@ -8,7 +8,8 @@
 #include <kernel/errno.h>
 
 /*! kernel stack */
-uint8 system_stack [ STACK_SIZE ];
+uint8 system_stack [ STACK_SIZE ]
+__attribute__((section(".stog")));
 
 char system_info[] = 	OS_NAME ": " NAME_MAJOR ":" NAME_MINOR ", "
 			"Version: " VERSION " (" ARCH ")";
@@ -36,7 +37,9 @@ void k_startup ()
 	stdio_init (); /* initialize standard output devices */
 
 	/* start desired program(s) */
-	hello_world ();
+	/*
+	 hello_world (); 
+	*/
 	debug ();
 
 	kprintf ( "\nSystem halted!\n" );
