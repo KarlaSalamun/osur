@@ -19,9 +19,9 @@
 typedef void ffs_mpool_t;
 
 /*! interface */
-void *ffs_init ( void *mem_segm, size_t size );
-void *ffs_alloc ( ffs_mpool_t *mpool, size_t size );
-int ffs_free ( ffs_mpool_t *mpool, void *chunk_to_be_freed );
+void *ffs3_init ( void *mem_segm, size_t size );
+void *ffs3_alloc ( size_t size );
+int ffs3_free ( void *chunk_to_be_freed );
 
 /*! rest is only for first_fit.c */
 #else /* _FF_SIMPLE_C_ */
@@ -77,11 +77,16 @@ ffs_mpool_t;
 #define ALIGN_FW(P)	\
 	do { (P) = ALIGN_MASK & (((size_t) (P)) + (ALIGN_VAL - 1)) ; } while(0)
 
-void *ffs_init ( void *mem_segm, size_t size );
-void *ffs_alloc ( ffs_mpool_t *mpool, size_t size );
-int ffs_free ( ffs_mpool_t *mpool, void *chunk_to_be_freed );
+#define BLOCK_MIN_M 65
+#define BLOCK_MIN_L 513
 
-static void ffs_remove_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk );
-static void ffs_insert_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk );
+extern ffs_mpool_t *k_mpool_s, *k_mpool_m, *k_mpool_l;
+
+void *ffs3_init ( void *mem_segm, size_t size );
+void *ffs3_alloc ( size_t size );
+int ffs3_free ( void *chunk_to_be_freed );
+
+static void ffs3_remove_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk );
+static void ffs3_insert_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk );
 
 #endif /* _FF_SIMPLE_C_ */

@@ -4,28 +4,38 @@
 #include <kernel/memory.h>
 
 /*! Kernel dynamic memory --------------------------------------------------- */
-#include <lib/ff_simple.h>
+#include <lib/ff_simple3.h>
 #include <lib/gma.h>
 
 #if MEM_ALLOCATOR == FIRST_FIT
 
 #define MEM_ALLOC_T ffs_mpool_t
-#define	K_MEM_INIT(segment, size)	ffs_init ( segment, size )
-#define	KMALLOC(size)			ffs_alloc ( k_mpool, size )
-#define	KFREE(addr)			ffs_free ( k_mpool, addr )
+#define	K_MEM_INIT(segment, size)	ffs3_init ( segment, size )
+#define	KMALLOC(size)			ffs3_alloc ( size )
+#define	KFREE(addr)			ffs3_free ( addr )
+
+#define HEAP_START_S (void *) 0x0010C000
+#define HEAP_START_M (void *) 0x00364000
+#define HEAP_START_L (void *) 0x005A8000
+
+#define HEAP_SIZE_S 0x00258000
+#define HEAP_SIZE_M 0x00244000
+#define HEAP_SIZE_L 0x00258000
 
 #elif MEM_ALLOCATOR == GMA
 
 #define MEM_ALLOC_T gma_t
 #define	K_MEM_INIT(segment, size)	gma_init ( segment, size, 32, 0 )
 #define	KMALLOC(size)			gma_alloc ( k_mpool, size )
-#define	KFREE(addr)			gma_free ( k_mpool, addr )
+#define	KFREE(addr)			gma_free ( k_mpool,  addr )
 
 #else /* memory allocator not selected! */
 
 #error	Dynamic memory manager not defined!
 
 #endif
+
+
 
 /*! Kernel memory layout ---------------------------------------------------- */
 #include <types/basic.h>
@@ -35,6 +45,7 @@
 
 
 extern MEM_ALLOC_T *k_mpool; /* defined in memory.c */
+extern MEM_ALLOC_T *k_mpool_s, *k_mpool_m, *k_mpool_l;
 extern list_t kobjects;
 
 void k_memory_init ();
