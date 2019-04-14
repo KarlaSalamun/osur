@@ -11,16 +11,10 @@
 
 #define MEM_ALLOC_T ffs_mpool_t
 #define	K_MEM_INIT(segment, size)	ffs3_init ( segment, size )
-#define	KMALLOC(size)			ffs3_alloc ( size )
-#define	KFREE(addr)			ffs3_free ( addr )
+#define	KMALLOC(size)			ffs3_alloc ( k_mpool, size )
+#define	KFREE(addr)			ffs3_free ( k_mpool, addr )
 
 #define HEAP_START_S (void *) 0x0010C000
-#define HEAP_START_M (void *) 0x00364000
-#define HEAP_START_L (void *) 0x005A8000
-
-#define HEAP_SIZE_S 0x00258000
-#define HEAP_SIZE_M 0x00244000
-#define HEAP_SIZE_L 0x00258000
 
 #elif MEM_ALLOCATOR == GMA
 

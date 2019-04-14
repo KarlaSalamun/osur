@@ -11,7 +11,7 @@
 #include <types/bits.h>
 
 /*! Dynamic memory allocator for kernel */
-//MEM_ALLOC_T *k_mpool = NULL;
+MEM_ALLOC_T *k_mpool = NULL;
 
 MEM_ALLOC_T *k_mpool_s = NULL;
 MEM_ALLOC_T *k_mpool_m = NULL;
@@ -24,22 +24,25 @@ extern char kernel_end_addr;
 
 list_t kobjects; /* list of kernel objects reserved by programs */
 
+size_t heap_size;
+
 /*! Initial memory layout created in arch layer */
 void k_memory_init ()
 {
 	int i;
-
-//	k_mpool = NULL;
+	size_t segment_size;
 	mseg = arch_memory_init ();
 
 	/* find kernel heap */
 	for ( i = 0; mseg[i].type != MS_END && !k_mpool_s; i++ )
 	{
 		if ( mseg[i].type == MS_KHEAP )
-		{
-			k_mpool_s = k_mem_init ( HEAP_START_S, HEAP_SIZE_S );
-			k_mpool_m = k_mem_init ( HEAP_START_M, HEAP_SIZE_M );
-			k_mpool_l = k_mem_init ( HEAP_START_L, HEAP_SIZE_L );	
+		{	
+			heap_size = mseg[i].size;
+			segment_size = heap_size/3;
+			k_mpool_s = k_mem_init ( HEAP_START_S, segment_size );
+			k_mpool_m = k_mem_init ( HEAP_START_S + segment_size, segment_size );
+			k_mpool_l = k_mem_init ( HEAP_START_S + 2*segment_size, segment_size );	
 			break;
 		}
 	}

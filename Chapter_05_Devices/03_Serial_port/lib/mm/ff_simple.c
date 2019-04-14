@@ -1,8 +1,7 @@
 /*!  Dynamic memory allocator - first fit */
 
 #define _FF_SIMPLE_C_
-#include <lib/ff_simple3.h>
-#include <kernel/kprint.h>
+#include <lib/ff_simple.h>
 
 #ifndef ASSERT
 #include ASSERT_H
@@ -14,8 +13,7 @@
  * \param size Memory pool size
  * \return memory pool descriptor
 */
-
-void *ffs3_init ( void *mem_segm, size_t size )
+void *ffs_init ( void *mem_segm, size_t size )
 {
 	size_t start, end;
 	ffs_hdr_t *chunk, *border;
@@ -25,14 +23,11 @@ void *ffs3_init ( void *mem_segm, size_t size )
 
 	/* align all on 'size_t' (if already not aligned) */
 	start = (size_t) mem_segm;
-
-	kprintf( "segment start: %x\n", start);
-
 	end = start + size;
 	ALIGN_FW ( start );
 	mpool = (void *) start;		/* place mm descriptor here */
 	start += sizeof (ffs_mpool_t);
-	ALIGN ( end);
+	ALIGN ( end );
 
 	mpool->first = NULL;
 
@@ -52,7 +47,7 @@ void *ffs3_init ( void *mem_segm, size_t size )
 	border->size = sizeof (size_t);
 	MARK_USED ( border );
 
-	ffs3_insert_chunk ( mpool, chunk ); /* first and only free chunk */
+	ffs_insert_chunk ( mpool, chunk ); /* first and only free chunk */
 
 	return mpool;
 }
@@ -63,26 +58,10 @@ void *ffs3_init ( void *mem_segm, size_t size )
  * \param size Requested chunk size
  * \return Block address, NULL if can't find adequate free chunk
  */
-void *ffs3_alloc ( ffs_mpool_t *_mpool, size_t size )
-{	
-	int min_size = 0;
-
+void *ffs_alloc ( ffs_mpool_t *mpool, size_t size )
+{
 	ffs_hdr_t *iter, *chunk;
 
-	ffs_mpool_t *mpool;
-
-	if ( size < BLOCK_MIN_M ) {
-		mpool = k_mpool_s;
-	}
-	else if (size < BLOCK_MIN_L ) {
-		mpool = k_mpool_m;
-		min_size = BLOCK_MIN_M;
-	}
-	else {
-		mpool = k_mpool_l;
-		min_size = BLOCK_MIN_L;
-	}
-	
 	ASSERT ( mpool );
 
 	size += sizeof (size_t) * 2; /* add header and tail size */
@@ -98,8 +77,8 @@ void *ffs3_alloc ( ffs_mpool_t *_mpool, size_t size )
 
 	if ( iter == NULL )
 		return NULL; /* no adequate free chunk found */
-	
-	if ( iter->size >= size + HEADER_SIZE + min_size)
+
+	if ( iter->size >= size + HEADER_SIZE )
 	{
 		/* split chunk */
 		/* first part remains in free list, just update size */
@@ -108,13 +87,12 @@ void *ffs3_alloc ( ffs_mpool_t *_mpool, size_t size )
 
 		chunk = GET_AFTER ( iter );
 		chunk->size = size;
-		kprintf("split %d %d \n", iter->size, chunk->size);
 	}
 	else { /* give whole chunk */
 		chunk = iter;
 
 		/* remove it from free list */
-		ffs3_remove_chunk ( mpool, chunk );
+		ffs_remove_chunk ( mpool, chunk );
 	}
 
 	MARK_USED ( chunk );
@@ -129,39 +107,23 @@ void *ffs3_alloc ( ffs_mpool_t *_mpool, size_t size )
  * \param chunk Chunk location (starting address)
  * \return 0 if successful, -1 otherwise
  */
-int ffs3_free ( ffs_mpool_t *_mpool, void *chunk_to_be_freed )
+int ffs_free ( ffs_mpool_t *mpool, void *chunk_to_be_freed )
 {
-	ffs_mpool_t *mpool;
 	ffs_hdr_t *chunk, *before, *after;
-	int size;
+
+	ASSERT ( mpool && chunk_to_be_freed );
 
 	chunk = chunk_to_be_freed - sizeof (size_t);
 	ASSERT ( CHECK_USED ( chunk ) );
 
 	MARK_FREE ( chunk ); /* mark it as free */
 
-	size = chunk->size;
-
-	if ( size <= 64 ) {
-		mpool = k_mpool_s;
-	}
-	else {
-		if ( size <= 512 ) {
-			mpool = k_mpool_m;
-		}
-		else {
-			mpool = k_mpool_l;
-		}
-	}
-
-	ASSERT ( mpool );
-
 	/* join with left? */
 	before = ( (void *) chunk ) - sizeof(size_t);
 	if ( CHECK_FREE ( before ) )
 	{
 		before = GET_HDR ( before );
-		ffs3_remove_chunk ( mpool, before );
+		ffs_remove_chunk ( mpool, before );
 		before->size += chunk->size; /* join */
 		chunk = before;
 	}
@@ -170,12 +132,12 @@ int ffs3_free ( ffs_mpool_t *_mpool, void *chunk_to_be_freed )
 	after = GET_AFTER ( chunk );
 	if ( CHECK_FREE ( after ) )
 	{
-		ffs3_remove_chunk ( mpool, after );
+		ffs_remove_chunk ( mpool, after );
 		chunk->size += after->size; /* join */
 	}
 
 	/* insert chunk in free list */
-	ffs3_insert_chunk ( mpool, chunk );
+	ffs_insert_chunk ( mpool, chunk );
 
 	/* set chunk tail */
 	CLONE_SIZE_TO_TAIL ( chunk );
@@ -188,7 +150,7 @@ int ffs3_free ( ffs_mpool_t *_mpool, void *chunk_to_be_freed )
  * \param mpool Memory pool to be used
  * \param chunk Chunk header
  */
-static void ffs3_remove_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk )
+static void ffs_remove_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk )
 {
 	if ( chunk == mpool->first ) /* first in list? */
 		mpool->first = chunk->next;
@@ -204,7 +166,7 @@ static void ffs3_remove_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk )
  * \param mpool Memory pool to be used
  * \param chunk Chunk header
  */
-static void ffs3_insert_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk )
+static void ffs_insert_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk )
 {
 	chunk->next = mpool->first;
 	chunk->prev = NULL;
