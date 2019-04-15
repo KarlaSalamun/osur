@@ -81,8 +81,6 @@ ffs_mpool_t;
 #define BLOCK_MIN_M 65
 #define BLOCK_MIN_L 513
 
-extern ffs_mpool_t *k_mpool_s, *k_mpool_m, *k_mpool_l;
-
 void *ffs3_init ( void *mem_segm, size_t size );
 void *ffs3_alloc ( ffs_mpool_t *mpool, size_t size );
 int ffs3_free ( ffs_mpool_t *mpool, void *chunk_to_be_freed );

@@ -4,10 +4,18 @@
 #include <kernel/memory.h>
 
 /*! Kernel dynamic memory --------------------------------------------------- */
+#include <lib/ff_simple.h>
 #include <lib/ff_simple3.h>
 #include <lib/gma.h>
 
 #if MEM_ALLOCATOR == FIRST_FIT
+
+#define MEM_ALLOC_T ffs_mpool_t
+#define	K_MEM_INIT(segment, size)	ffs_init ( segment, size )
+#define	KMALLOC(size)			ffs_alloc ( k_mpool, size )
+#define	KFREE(addr)			ffs_free ( k_mpool, addr )
+
+#elif MEM_ALLOCATOR == FIRST_FIT_3
 
 #define MEM_ALLOC_T ffs_mpool_t
 #define	K_MEM_INIT(segment, size)	ffs3_init ( segment, size )
@@ -39,7 +47,6 @@
 
 
 extern MEM_ALLOC_T *k_mpool; /* defined in memory.c */
-extern MEM_ALLOC_T *k_mpool_s, *k_mpool_m, *k_mpool_l;
 extern list_t kobjects;
 
 void k_memory_init ();

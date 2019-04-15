@@ -16,8 +16,6 @@ MEM_ALLOC_T *k_mpool = NULL;
 /*! Memory segments */
 static mseg_t *mseg = NULL;
 
-extern char kernel_end_addr;
-
 list_t kobjects; /* list of kernel objects reserved by programs */
 
 /*! Initial memory layout created in arch layer */
