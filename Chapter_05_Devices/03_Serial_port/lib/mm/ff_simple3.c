@@ -15,24 +15,53 @@
  * \return memory pool descriptor
 */
 
+size_t heap_size;
+
+ffs_mpool_t *mpool_s = NULL;
+ffs_mpool_t *mpool_m = NULL;
+ffs_mpool_t *mpool_l = NULL;
+
 void *ffs3_init ( void *mem_segm, size_t size )
 {
-	size_t start, end;
-	ffs_hdr_t *chunk, *border;
-	ffs_mpool_t *mpool;
+	heap_size = size;
+
+	size_t start;
+	size_t seg_size = size/3;
 
 	ASSERT ( mem_segm && size > sizeof (ffs_hdr_t) * 2 );
 
 	/* align all on 'size_t' (if already not aligned) */
 	start = (size_t) mem_segm;
+	ALIGN_FW ( start );
+	mpool_s = (void *) start;
+	if ( ffs3_segment_init ( mpool_s, start, seg_size ) == NULL ) 
+	       return NULL;	
 
-	kprintf( "segment start: %x\n", start);
+	start = (size_t) mem_segm + seg_size;
+	ALIGN_FW ( start );
+	mpool_m = (void *) start;
+	if ( ffs3_segment_init ( mpool_m, start, seg_size ) == NULL )
+		return NULL;
+
+	start = (size_t) mem_segm + 2*seg_size;
+	ALIGN_FW ( start );
+	mpool_l = (void *) start;
+	if ( ffs3_segment_init ( mpool_l, start, seg_size ) == NULL )
+		return NULL;
+	
+	return mpool_s;
+}
+
+void *ffs3_segment_init ( ffs_mpool_t *mpool, size_t start, size_t size ) 
+{
+	ffs_hdr_t *chunk, *border;
+	size_t end;
 
 	end = start + size;
-	ALIGN_FW ( start );
-	mpool = (void *) start;		/* place mm descriptor here */
-	start += sizeof (ffs_mpool_t);
-	ALIGN ( end);
+	ALIGN_FW( start );
+	mpool = (void *) start;
+	start += sizeof(ffs_mpool_t);
+	ALIGN( end );
 
 	mpool->first = NULL;
 
@@ -40,19 +69,19 @@ void *ffs3_init ( void *mem_segm, size_t size )
 		return NULL;
 
 	border = (ffs_hdr_t *) start;
-	border->size = sizeof (size_t);
+	border->size = sizeof(size_t);
 	MARK_USED ( border );
 
 	chunk = GET_AFTER ( border );
-	chunk->size = end - start - 2 * sizeof(size_t);
-	MARK_FREE ( chunk );
+	chunk->size = end - start - 2*sizeof(size_t);
+	MARK_FREE(chunk);
 	CLONE_SIZE_TO_TAIL ( chunk );
 
 	border = GET_AFTER ( chunk );
-	border->size = sizeof (size_t);
+	border->size = sizeof(size_t);
 	MARK_USED ( border );
 
-	ffs3_insert_chunk ( mpool, chunk ); /* first and only free chunk */
+	ffs3_insert_chunk ( mpool, chunk );
 
 	return mpool;
 }
@@ -72,14 +101,14 @@ void *ffs3_alloc ( ffs_mpool_t *_mpool, size_t size )
 	ffs_mpool_t *mpool;
 
 	if ( size < BLOCK_MIN_M ) {
-		mpool = k_mpool_s;
+		mpool = mpool_s;
 	}
 	else if (size < BLOCK_MIN_L ) {
-		mpool = k_mpool_m;
+		mpool = mpool_m;
 		min_size = BLOCK_MIN_M;
 	}
 	else {
-		mpool = k_mpool_l;
+		mpool = mpool_l;
 		min_size = BLOCK_MIN_L;
 	}
 	
@@ -108,7 +137,7 @@ void *ffs3_alloc ( ffs_mpool_t *_mpool, size_t size )
 
 		chunk = GET_AFTER ( iter );
 		chunk->size = size;
-		kprintf("split %d %d \n", iter->size, chunk->size);
+//		kprintf("split %d %d \n", iter->size, chunk->size);
 	}
 	else { /* give whole chunk */
 		chunk = iter;
@@ -142,16 +171,14 @@ int ffs3_free ( ffs_mpool_t *_mpool, void *chunk_to_be_freed )
 
 	size = chunk->size;
 
-	if ( size <= 64 ) {
-		mpool = k_mpool_s;
+	if ( size < BLOCK_MIN_M ) {
+		mpool = mpool_s;
+	}
+	else if ( size < BLOCK_MIN_L ) {
+		mpool = mpool_m;
 	}
 	else {
-		if ( size <= 512 ) {
-			mpool = k_mpool_m;
-		}
-		else {
-			mpool = k_mpool_l;
-		}
+		mpool = mpool_l;
 	}
 
 	ASSERT ( mpool );

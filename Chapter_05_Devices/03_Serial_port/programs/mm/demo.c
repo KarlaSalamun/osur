@@ -1,9 +1,11 @@
 #include <api/stdio.h>
 #include <api/malloc.h>
+#include <lib/ff_simple3.h>
 
 #define HEAP_START_S (void *) 0x0010C000
 
 extern size_t heap_size;
+extern ffs_mpool_t *mpool_s, *mpool_m, *mpool_l;
 
 int demo (void) 
 {
@@ -19,13 +21,13 @@ int demo (void)
 	struct req requests[21];
 
 	printf("heap size: %d\n", heap_size);
-	printf("segment start:\n small blocks: %x\n medium blocks: %x\n large blocks: %x\n",
-			HEAP_START_S, HEAP_START_S+segment_size, HEAP_START_S+2*segment_size);
-
 	printf("segment size: %d\n", segment_size);
+	printf("segment start:\n small blocks: %x\n medium blocks: %x\n large blocks: %x\n\n",
+			mpool_s, mpool_m, mpool_l);
+
 	
-	for (i = 0; i<10; i++) {
-		requests[i].size = (i+1)*64; 
+	for (i = 0; i<5; i++) {
+		requests[i].size = (i+1)*16; 
 		if ( ( requests[i].ptr = malloc(requests[i].size ) ) == NULL ) {
 			printf("malloc returned NULL\n");
 			return 1;
@@ -33,8 +35,17 @@ int demo (void)
 		printf( "size: %d	address: %x\n", requests[i].size, requests[i].ptr);
 	}
 
-	for (i = 0; i<10; i++) {
-		requests[i+10].size = segment_size/100*(i+1);
+	for (i = 0; i<5; i++) {
+		requests[i+5].size = (i+1)*256;
+		if ( ( requests[i+5].ptr = malloc(requests[i+5].size ) ) == NULL ) {
+			printf("malloc returned NULL\n");
+			return 1;
+		}
+		printf( "size: %d	address: %x\n", requests[i+5].size, requests[i+5].ptr);
+	}
+
+	for (i = 0; i<5; i++) {
+		requests[i+10].size = segment_size/256*(i+1);
 		if ( ( requests[i+10].ptr = malloc(requests[i+10].size ) ) == NULL ) {
 			printf("malloc returned NULL\n");
 			return 1;
@@ -42,6 +53,14 @@ int demo (void)
 		printf( "size: %d	address: %x\n", requests[i+10].size, requests[i+10].ptr);
 	}
 
+	for (i = 0; i<5; i++) {
+		requests[i+15].size = segment_size/16*(i+1);
+		if ( ( requests[i+15].ptr = malloc(requests[i+15].size ) ) == NULL ) {
+			printf("malloc returned NULL\n");
+			return 1;
+		}
+		printf( "size: %d	address: %x\n", requests[i+15].size, requests[i+15].ptr);
+	}
 	for (i = 0; i<20; i++) {
 		if(free(requests[i].ptr))
 			printf("failed to free memory\n");

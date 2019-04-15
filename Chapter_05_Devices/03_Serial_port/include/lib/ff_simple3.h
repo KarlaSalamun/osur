@@ -22,6 +22,7 @@ typedef void ffs_mpool_t;
 void *ffs3_init ( void *mem_segm, size_t size );
 void *ffs3_alloc ( ffs_mpool_t *mpool, size_t size );
 int ffs3_free ( ffs_mpool_t *mpool, void *chunk_to_be_freed );
+void *ffs3_segment_init ( ffs_mpool_t *mpool, size_t start, size_t size ); 
 
 /*! rest is only for first_fit.c */
 #else /* _FF_SIMPLE_C_ */
@@ -85,6 +86,7 @@ extern ffs_mpool_t *k_mpool_s, *k_mpool_m, *k_mpool_l;
 void *ffs3_init ( void *mem_segm, size_t size );
 void *ffs3_alloc ( ffs_mpool_t *mpool, size_t size );
 int ffs3_free ( ffs_mpool_t *mpool, void *chunk_to_be_freed );
+void *ffs3_segment_init ( ffs_mpool_t *mpool, size_t start, size_t size ); 
 
 static void ffs3_remove_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk );
 static void ffs3_insert_chunk ( ffs_mpool_t *mpool, ffs_hdr_t *chunk );

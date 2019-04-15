@@ -13,10 +13,6 @@
 /*! Dynamic memory allocator for kernel */
 MEM_ALLOC_T *k_mpool = NULL;
 
-MEM_ALLOC_T *k_mpool_s = NULL;
-MEM_ALLOC_T *k_mpool_m = NULL;
-MEM_ALLOC_T *k_mpool_l = NULL;
-
 /*! Memory segments */
 static mseg_t *mseg = NULL;
 
@@ -24,31 +20,25 @@ extern char kernel_end_addr;
 
 list_t kobjects; /* list of kernel objects reserved by programs */
 
-size_t heap_size;
-
 /*! Initial memory layout created in arch layer */
 void k_memory_init ()
 {
 	int i;
-	size_t segment_size;
+
+	k_mpool = NULL;
 	mseg = arch_memory_init ();
 
 	/* find kernel heap */
-	for ( i = 0; mseg[i].type != MS_END && !k_mpool_s; i++ )
+	for ( i = 0; mseg[i].type != MS_END && !k_mpool; i++ )
 	{
 		if ( mseg[i].type == MS_KHEAP )
 		{	
-			heap_size = mseg[i].size;
-			segment_size = heap_size/3;
-			k_mpool_s = k_mem_init ( HEAP_START_S, segment_size );
-			k_mpool_m = k_mem_init ( HEAP_START_S + segment_size, segment_size );
-			k_mpool_l = k_mem_init ( HEAP_START_S + 2*segment_size, segment_size );	
+			k_mpool = k_mem_init ( mseg[i].start, mseg[i].size );
 			break;
 		}
 	}
-	ASSERT ( k_mpool_s );
-	ASSERT ( k_mpool_m );
-	ASSERT ( k_mpool_l );
+
+	ASSERT ( k_mpool );
 }
 
 void *k_mem_init ( void *segment, size_t size )
