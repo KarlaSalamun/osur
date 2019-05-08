@@ -1,0 +1,109 @@
+arch/i386/time.c:static timespec_t delay;	/* delay set by kernel, or timer->max_count */
+arch/i386/time.c:static timespec_t threshold;/* timer->min_interval / 2 */
+arch/i386/time.c:void arch_enable_timer_interrupt ()	{ timer->enable_interrupt ();	}
+arch/i386/time.c:void arch_disable_timer_interrupt ()	{ timer->disable_interrupt ();	}
+arch/i386/time.c:	*time = timer->min_interval;
+arch/i386/time.c:	timer->init ();
+arch/i386/time.c:	last_load = delay = timer->max_interval;
+arch/i386/time.c:	timer->set_interval ( &last_load );
+arch/i386/time.c:	timer->register_interrupt ( arch_timer_handler );
+arch/i386/time.c:	timer->enable_interrupt ();
+arch/i386/time.c:	threshold.tv_sec = timer->min_interval.tv_sec / 2;
+arch/i386/time.c:	threshold.tv_nsec = timer->min_interval.tv_nsec / 2;
+arch/i386/time.c:	if ( timer->min_interval.tv_sec % 2 )
+arch/i386/time.c:	timer->get_interval_remainder ( &remainder );
+arch/i386/time.c:	if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
+arch/i386/time.c:		delay = timer->min_interval;
+arch/i386/time.c:	if ( time_cmp ( &delay, &timer->max_interval ) > 0 )
+arch/i386/time.c:		last_load = timer->max_interval;
+arch/i386/time.c:	timer->set_interval ( &last_load );
+arch/i386/time.c:	timer->get_interval_remainder ( &remainder );
+arch/i386/time.c:	last_load = timer->max_interval;
+arch/i386/time.c:	timer->set_interval ( &last_load );
+arch/i386/time.c:			last_load = timer->max_interval;
+arch/i386/time.c:			timer->set_interval ( &last_load );
+arch/i386/time.c:			if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
+arch/i386/time.c:				last_load = timer->min_interval;
+arch/i386/time.c:			else if ( time_cmp ( &delay, &timer->max_interval ) < 0 )
+arch/i386/time.c:				last_load = timer->max_interval;
+arch/i386/time.c:			timer->set_interval ( &last_load );
+arch/arm/time.c:static timespec_t delay;	/* delay set by kernel, or timer->max_count */
+arch/arm/time.c:static timespec_t threshold;/* timer->min_interval / 2 */
+arch/arm/time.c:void arch_enable_timer_interrupt ()	{ timer->enable_interrupt ();	}
+arch/arm/time.c:void arch_disable_timer_interrupt ()	{ timer->disable_interrupt ();	}
+arch/arm/time.c:	*time = timer->min_interval;
+arch/arm/time.c:	timer->init ();
+arch/arm/time.c:	last_load = delay = timer->max_interval;
+arch/arm/time.c:	timer->set_interval ( &last_load );
+arch/arm/time.c:	timer->register_interrupt ( arch_timer_handler );
+arch/arm/time.c:	timer->enable_interrupt ();
+arch/arm/time.c:	threshold.tv_sec = timer->min_interval.tv_sec / 2;
+arch/arm/time.c:	threshold.tv_nsec = timer->min_interval.tv_nsec / 2;
+arch/arm/time.c:	if ( timer->min_interval.tv_sec % 2 )
+arch/arm/time.c:	timer->get_interval_remainder ( &remainder );
+arch/arm/time.c:	if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
+arch/arm/time.c:		delay = timer->min_interval;
+arch/arm/time.c:	if ( time_cmp ( &delay, &timer->max_interval ) > 0 )
+arch/arm/time.c:		last_load = timer->max_interval;
+arch/arm/time.c:	timer->set_interval ( &last_load );
+arch/arm/time.c:	timer->get_interval_remainder ( &remainder );
+arch/arm/time.c:	last_load = timer->max_interval;
+arch/arm/time.c:	timer->set_interval ( &last_load );
+arch/arm/time.c:			last_load = timer->max_interval;
+arch/arm/time.c:			timer->set_interval ( &last_load );
+arch/arm/time.c:			if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
+arch/arm/time.c:				last_load = timer->min_interval;
+arch/arm/time.c:			else if ( time_cmp ( &delay, &timer->max_interval ) < 0 )
+arch/arm/time.c:				last_load = timer->max_interval;
+arch/arm/time.c:			timer->set_interval ( &last_load );
+build/ARCH/time.c:static timespec_t delay;	/* delay set by kernel, or timer->max_count */
+build/ARCH/time.c:static timespec_t threshold;/* timer->min_interval / 2 */
+build/ARCH/time.c:void arch_enable_timer_interrupt ()	{ timer->enable_interrupt ();	}
+build/ARCH/time.c:void arch_disable_timer_interrupt ()	{ timer->disable_interrupt ();	}
+build/ARCH/time.c:	*time = timer->min_interval;
+build/ARCH/time.c:	timer->init ();
+build/ARCH/time.c:	last_load = delay = timer->max_interval;
+build/ARCH/time.c:	timer->set_interval ( &last_load );
+build/ARCH/time.c:	timer->register_interrupt ( arch_timer_handler );
+build/ARCH/time.c:	timer->enable_interrupt ();
+build/ARCH/time.c:	threshold.tv_sec = timer->min_interval.tv_sec / 2;
+build/ARCH/time.c:	threshold.tv_nsec = timer->min_interval.tv_nsec / 2;
+build/ARCH/time.c:	if ( timer->min_interval.tv_sec % 2 )
+build/ARCH/time.c:	timer->get_interval_remainder ( &remainder );
+build/ARCH/time.c:	if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
+build/ARCH/time.c:		delay = timer->min_interval;
+build/ARCH/time.c:	if ( time_cmp ( &delay, &timer->max_interval ) > 0 )
+build/ARCH/time.c:		last_load = timer->max_interval;
+build/ARCH/time.c:	timer->set_interval ( &last_load );
+build/ARCH/time.c:	timer->get_interval_remainder ( &remainder );
+build/ARCH/time.c:	last_load = timer->max_interval;
+build/ARCH/time.c:	timer->set_interval ( &last_load );
+build/ARCH/time.c:			last_load = timer->max_interval;
+build/ARCH/time.c:			timer->set_interval ( &last_load );
+build/ARCH/time.c:			if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
+build/ARCH/time.c:				last_load = timer->min_interval;
+build/ARCH/time.c:			else if ( time_cmp ( &delay, &timer->max_interval ) < 0 )
+build/ARCH/time.c:				last_load = timer->max_interval;
+build/ARCH/time.c:			timer->set_interval ( &last_load );
+kernel/time.c:	remain = sleep_timer->param;
+kernel/time.c:	remain = sleep_timer->param;
+kernel/time.c:	ktimer->id = k_new_id ();
+kernel/time.c:	ktimer->clockid = clockid;
+kernel/time.c:	ktimer->evp = *evp;
+kernel/time.c:	ktimer->param = NULL;
+kernel/time.c:	if ( !k_check_id ( ktimer->id ) )
+kernel/time.c:		list_remove ( &ktimers, 0, &ktimer->list );
+kernel/time.c:	k_free_id ( ktimer->id );
+kernel/time.c:	kclock_gettime ( ktimer->clockid, &now );
+kernel/time.c:		*ovalue = ktimer->itimer;
+kernel/time.c:		list_remove ( &ktimers, 0, &ktimer->list );
+kernel/time.c:		ktimer->itimer = *value;
+kernel/time.c:			time_add ( &ktimer->itimer.it_value, &now );
+kernel/time.c:		list_sort_add ( &ktimers, ktimer, &ktimer->list, ktimer_cmp );
+kernel/time.c:	kclock_gettime ( ktimer->clockid, &now );
+kernel/time.c:	*value = ktimer->itimer;
+kernel/time.c:	sleep_timer->param = remain;
+kernel/time.c:		timerid->id = ktimer->id;
+kernel/time.c:	ASSERT_ERRNO_AND_EXIT ( ktimer && ktimer->id == timerid->id, EINVAL );
+kernel/time.c:	ASSERT_ERRNO_AND_EXIT ( ktimer && ktimer->id == timerid->id, EINVAL );
+kernel/time.c:	ASSERT_ERRNO_AND_EXIT ( ktimer && ktimer->id == timerid->id, EINVAL );

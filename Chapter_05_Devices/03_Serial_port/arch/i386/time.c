@@ -7,6 +7,8 @@
 extern arch_timer_t TIMER;
 static arch_timer_t *timer = &TIMER;
 
+size_t cnt = 0;
+
 static timespec_t clock;	/* system time starting from 0:00 at power on */
 static timespec_t delay;	/* delay set by kernel, or timer->max_count */
 static timespec_t last_load;/* last time equivalent loaded to counter */
@@ -31,20 +33,20 @@ void arch_timer_init ()
 {
 	clock.tv_sec = clock.tv_nsec = 0;
 	alarm_handler = NULL;
-
+	
 	timer->init ();
 
-	last_load = delay = timer->max_interval;
+	last_load.tv_nsec = timer->max_interval.tv_nsec = 100000;
 
 	timer->set_interval ( &last_load );
 	timer->register_interrupt ( arch_timer_handler );
 	timer->enable_interrupt ();
-
+	
 	threshold.tv_sec = timer->min_interval.tv_sec / 2;
 	threshold.tv_nsec = timer->min_interval.tv_nsec / 2;
 	if ( timer->min_interval.tv_sec % 2 )
-		threshold.tv_nsec += 1000000000L / 2; /* + half second */
-
+		threshold.tv_nsec += 1000000000L / 2; // + half second 
+	
 	return;
 }
 
@@ -66,12 +68,10 @@ void arch_timer_set ( timespec_t *time, void *alarm_func )
 		delay = timer->min_interval;
 
 	alarm_handler = alarm_func;
-
 	if ( time_cmp ( &delay, &timer->max_interval ) > 0 )
 		last_load = timer->max_interval;
 	else
 		last_load = delay;
-
 	timer->set_interval ( &last_load );
 }
 
@@ -124,8 +124,8 @@ static void arch_timer_handler ()
 
 	if ( alarm_handler )
 	{
+		cnt++;
 		time_sub ( &delay, &last_load );
-
 		if ( time_cmp ( &delay, &threshold ) <= 0 )
 		{
 			/* activate alarm; but first update counter */
@@ -139,8 +139,9 @@ static void arch_timer_handler ()
 		else {
 			if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
 				last_load = timer->min_interval;
-			else if ( time_cmp ( &delay, &timer->max_interval ) < 0 )
+			else if ( time_cmp ( &delay, &timer->max_interval ) < 0 ) {
 				last_load = delay;
+			}
 			else
 				last_load = timer->max_interval;
 
