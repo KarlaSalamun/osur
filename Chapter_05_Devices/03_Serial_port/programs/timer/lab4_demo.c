@@ -14,6 +14,7 @@ static void alarm_func ( sigval_t param )
 
 int timer_func (void) 
 {
+	timespec_t t;
 	itimerspec_t t1;	
 	sigevent_t evp;
 	timer_t timer;
@@ -34,7 +35,16 @@ int timer_func (void)
 	timer_create ( CLOCK_REALTIME, &evp, &timer );
 	timer_settime ( &timer, 0, &t1, NULL );
 
-	while ( sec_cnt <= 20 );
+	t.tv_sec = 20;
+	t.tv_nsec = 0;
+
+	while ( TIME_IS_SET (&t) ) 
+	{
+		if ( clock_nanosleep ( CLOCK_REALTIME, 0, &t, &t ) )
+		{
+			printf ( "Interrupted sleep\n ");
+		}
+	}	
 	
 	timer_delete ( &timer );
 	
