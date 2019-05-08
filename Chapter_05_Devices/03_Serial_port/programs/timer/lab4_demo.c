@@ -8,7 +8,7 @@ size_t sec_cnt = 0;
 static void alarm_func ( sigval_t param ) 
 {
 	sec_cnt++;
-	printf ( "sekunda: %d	broj prekida: %d \n", sec_cnt, cnt);
+	printf ( "[alarm] sekunda: %d	broj prekida: %d \n", sec_cnt, cnt);
 	cnt = 0;
 }
 

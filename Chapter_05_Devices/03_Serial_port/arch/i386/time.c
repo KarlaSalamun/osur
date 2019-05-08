@@ -56,23 +56,29 @@ void arch_timer_init ()
  * \param alarm_func Function to call upon timer expiration
  */
 void arch_timer_set ( timespec_t *time, void *alarm_func )
-{
+{	
+	/*
 	timespec_t remainder;
 
 	timer->get_interval_remainder ( &remainder );
 	time_sub ( &last_load, &remainder );
+	*/
 	time_add ( &clock, &last_load );
-
+	
 	delay = *time;
+	/*
 	if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
 		delay = timer->min_interval;
-
+	*/
 	alarm_handler = alarm_func;
+	/*
 	if ( time_cmp ( &delay, &timer->max_interval ) > 0 )
 		last_load = timer->max_interval;
 	else
 		last_load = delay;
-	timer->set_interval ( &last_load );
+	*/
+//	timer->set_interval ( &last_load );
+	
 }
 
 /*!
@@ -81,6 +87,7 @@ void arch_timer_set ( timespec_t *time, void *alarm_func )
  */
 void arch_get_time ( timespec_t *time )
 {
+	/*
 	timespec_t remainder;
 
 	timer->get_interval_remainder ( &remainder );
@@ -88,6 +95,8 @@ void arch_get_time ( timespec_t *time )
 	*time = last_load;
 	time_sub ( time, &remainder );
 	time_add ( time, &clock );
+	*/
+	*time = clock;
 }
 
 /*!
@@ -97,19 +106,23 @@ void arch_get_time ( timespec_t *time )
  */
 void arch_set_time ( timespec_t *time )
 {
+	
 	void (*k_handler) ();
 
 	clock = *time;
+	/*
 	last_load = timer->max_interval;
 	timer->set_interval ( &last_load );
-
+	*/
 	/* let kernel handle time shift problems */
+	
 	if ( alarm_handler )
 	{
 		k_handler = alarm_handler;
-		alarm_handler = NULL; /* reset kernel callback function */
+		alarm_handler = NULL; // reset kernel callback function 
 		k_handler ();
 	}
+	
 }
 
 /*!
@@ -119,23 +132,25 @@ void arch_set_time ( timespec_t *time )
 static void arch_timer_handler ()
 {
 	void (*k_handler) ();
-
+	
 	time_add ( &clock, &last_load );
-
+	
 	if ( alarm_handler )
 	{
 		cnt++;
 		time_sub ( &delay, &last_load );
 		if ( time_cmp ( &delay, &threshold ) <= 0 )
 		{
-			/* activate alarm; but first update counter */
-			last_load = timer->max_interval;
-			timer->set_interval ( &last_load );
+			// activate alarm; but first update counter 
+//			last_load = timer->max_interval;
+//			timer->set_interval ( &last_load );
 
 			k_handler = alarm_handler;
-			alarm_handler = NULL; /* reset kernel callback function */
-			k_handler (); /* forward interrupt to kernel */
+			alarm_handler = NULL; //reset kernel callback function 
+			k_handler (); // forward interrupt to kernel 
 		}
+	}
+	/*
 		else {
 			if ( time_cmp ( &delay, &timer->min_interval ) < 0 )
 				last_load = timer->min_interval;
@@ -148,4 +163,5 @@ static void arch_timer_handler ()
 			timer->set_interval ( &last_load );
 		}
 	}
+	*/
 }
