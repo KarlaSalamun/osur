@@ -7,10 +7,13 @@
 #include "memory.h"
 #include <arch/interrupt.h>
 #include <lib/string.h>
+#include "fs.h"
 
 static list_t devices;
 
 static void k_device_interrupt_handler ( unsigned int inum, void *device );
+
+device_t _disk;
 
 /*! Initialize initial device as console for system boot messages */
 void kdevice_set_initial_stdout ()
@@ -242,21 +245,48 @@ device_t dev_null = (device_t)
 
 int sys__open ( char *pathname, int flags, mode_t mode, descriptor_t *desc )
 {
+	char file_prefix[] = "file:";
+
 	kdevice_t *kdev;
 	kobject_t *kobj;
+
+	file_t *file;
 
 	SYS_ENTRY();
 
 	ASSERT_ERRNO_AND_EXIT ( pathname, EINVAL );
 	ASSERT_ERRNO_AND_EXIT ( desc, EINVAL );
 
-	kdev = k_device_open ( pathname, flags );
+	kobj = kmalloc_kobject ( 0 );
+	ASSERT_ERRNO_AND_EXIT ( kobj, ENOMEM );
+	
+	if ( !strncmp ( pathname, file_prefix, strlen(file_prefix) ) )
+	{
+		file = fopen ( pathname, flags );
+		if ( !file ) 
+			return EXIT_FAILURE;
+
+		kdev = k_device_open ( "DISK", flags );
+		_disk = kdev->dev;
+		
+		kobj->kobject = file;
+		kobj->flags = flags;
+		
+		desc->ptr = kobj;
+		desc->id = file->id;
+		SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
+	
+	}
+	/* TODO: dodati provjeru je li device */
+
+	else {
+	
+		kdev = k_device_open ( pathname, flags );
+
+	}
 
 	if ( !kdev )
 		return EXIT_FAILURE;
-
-	kobj = kmalloc_kobject ( 0 );
-	ASSERT_ERRNO_AND_EXIT ( kobj, ENOMEM );
 
 	kobj->kobject = kdev;
 	kobj->flags = flags;
@@ -266,7 +296,7 @@ int sys__open ( char *pathname, int flags, mode_t mode, descriptor_t *desc )
 
 	/* add descriptor to device list */
 	list_append ( &kdev->descriptors, kobj, &kobj->spec );
-
+	
 	SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
 }
 
@@ -283,6 +313,13 @@ int sys__close ( descriptor_t *desc )
 	ASSERT_ERRNO_AND_EXIT ( kobj, EINVAL );
 	ASSERT_ERRNO_AND_EXIT ( list_find ( &kobjects, &kobj->list ),
 				EINVAL );
+
+	if ( desc->id >= 10 ) 
+	{
+		kfree_kobject ( kobj );
+		SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
+	}
+
 	kdev = kobj->kobject;
 	ASSERT_ERRNO_AND_EXIT ( kdev && kdev->id == desc->id, EINVAL );
 
@@ -311,6 +348,7 @@ static int read_write ( descriptor_t *desc, void *buffer, size_t size, int op )
 {
 	kdevice_t *kdev;
 	kobject_t *kobj;
+	file_t *file;
 	int retval;
 
 	SYS_ENTRY();
@@ -321,15 +359,30 @@ static int read_write ( descriptor_t *desc, void *buffer, size_t size, int op )
 	ASSERT_ERRNO_AND_EXIT ( kobj, EINVAL );
 	ASSERT_ERRNO_AND_EXIT ( list_find ( &kobjects, &kobj->list ),
 				EINVAL );
-	kdev = kobj->kobject;
-	ASSERT_ERRNO_AND_EXIT ( kdev && kdev->id == desc->id, EINVAL );
+//	kdev = kobj->kobject;
+//	ASSERT_ERRNO_AND_EXIT ( kdev && kdev->id == desc->id, EINVAL );
 
 	/* TODO check permission for requested operation from opening flags */
 
-	if ( op )
-		retval = k_device_recv ( buffer, size, kobj->flags, kdev );
-	else
-		retval = k_device_send ( buffer, size, kobj->flags, kdev );
+	switch ( kobj->flags ) {
+		case 1:
+			file = kobj->kobject;	
+			if ( op )
+				retval = file_read ( buffer, size, file );
+			
+			else
+				retval = file_write ( buffer, size, file );
+			break;
+		
+		default:	
+			kdev = kobj->kobject;
+			ASSERT_ERRNO_AND_EXIT ( kdev && kdev->id == desc->id, EINVAL );
+			if ( op )
+				retval = k_device_recv ( buffer, size, kobj->flags, kdev );
+			else
+				retval = k_device_send ( buffer, size, kobj->flags, kdev );
+
+	}
 
 	if ( retval >= 0 )
 		SYS_EXIT ( EXIT_SUCCESS, retval );

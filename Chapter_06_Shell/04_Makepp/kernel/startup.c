@@ -4,12 +4,14 @@
 #include "time.h"
 #include "device.h"
 #include "memory.h"
+#include "fs.h"
 #include <kernel/errno.h>
 #include <kernel/features.h>
 #include <arch/interrupt.h>
 #include <arch/processor.h>
 #include <lib/string.h>
 #include <api/prog_info.h>
+#include <api/stdio.h>
 
 char system_info[] = 	OS_NAME ": " NAME_MAJOR ":" NAME_MINOR ", "
 			"Version: " VERSION " (" ARCH ")";
@@ -46,6 +48,8 @@ void k_startup ()
 	/* devices */
 	k_devices_init ();
 
+	init_fs();
+
 	/* switch to default 'stdout' for kernel */
 	k_stdout = k_device_open ( K_STDOUT, O_WRONLY );
 
@@ -57,8 +61,40 @@ void k_startup ()
 	/* enable interrupts */
 	enable_interrupts ();
 
-	/* starting program routine */
 	prog_init ( NULL );
+	/* example using disk */
+	int fd = open ("DISK", 0, 0 ), ok = 0;
+	int status;
+	int test = 0xdeadbeef;
+	int test_read = 0;
+	if ( fd > 0 ) {
+		char data_out[2048] = {[0 ... 2047] = 5};
+		size_t block = 55, blocks = 2048/512;
+		status = write ( fd, data_out, (block << 16) | blocks );
+		if ( status == blocks * 512 ) {
+			/* + provjera status! */
+			char data_in[512];
+			status = read ( fd, data_in, (block << 16) | blocks);
+			if ( status == blocks * 512 ) {
+				if ( memcmp ( data_out, data_in, 2048 ) == 0 ) {
+					kprintf ( "DISK working OK! %d\n", fd);
+					ok = 1;
+				}
+			}
+		}
+	}
+	if (!ok)
+		kprintf ( "DISK NOT working!\n");
+
+	fd = open ( "file:test.txt", O_CREAT, 0);
+	kprintf ( "file descriptor: %d\n", fd);
+	//fd = open ( "file:drugitest.txt", O_CREAT, 0);
+	//kprintf ( "file descriptor: %d\n", fd);
+	status = write ( fd, &test, sizeof(int) );
+	if ( status == 512) {
+		status = read ( fd, &test_read, sizeof(int));
+	}
+	kprintf("%x\n", test_read);
 
 	kprintf ( "\nSystem halted!\n" );
 	halt ();
