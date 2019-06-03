@@ -93,7 +93,7 @@ file_t *fopen ( char *name, int flags )
 	 		return NULL; 
 	 	}
 		
-		file->block +=1;
+		//file->block +=1;
 		list_append( &files, file, &file->list );
 	}
 
@@ -103,9 +103,9 @@ file_t *fopen ( char *name, int flags )
 
 ssize_t file_read ( void *buffer, size_t size, file_t *file ) 
 {
-	if ( file->flags & O_WRONLY)
+	if ( !(file->flags & O_RDONLY) )
 	{
-		kprintf("file open for writing only\n");
+		kprintf("file not open for reading\n");
 		return -1;	
 	}
 
@@ -139,8 +139,8 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	}
 	*/
 	//retval = write ( 3, buffer, (file->block << 16) | 1 );
-	retval = k_device_send ( buffer, (file->block << 16) | 1,  0, &_disk);
 	file->block = get_free_block();
+	retval = k_device_send ( buffer, (file->block << 16) | 1,  0, &_disk);
 	bitmap[file->block /32] ^= 1 << (31 - file->block % 32) ;
 	kprintf("redak: %d, stupac %d\n", file->block/32, file->block%32);
 	kprintf("bitmap: %d %x\n", file->block/32, bitmap[file->block /32]);

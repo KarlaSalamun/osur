@@ -88,7 +88,7 @@ void k_startup ()
 	char file_out[8] = "deadbeef";
 	//int test = 0xdeadbeef;
 	char file_in[512];
-	fd = open ( "file:test.txt", O_CREAT, 0);
+	fd = open ( "file:test.txt", O_CREAT | O_RDWR, 0);
 	if ( fd == -1 )
 	{	
 		kprintf("file exists\n");
