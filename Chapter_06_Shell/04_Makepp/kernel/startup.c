@@ -85,7 +85,7 @@ void k_startup ()
 	}
 	if (!ok)
 		kprintf ( "DISK NOT working!\n");
-	char file_out[8] = "deadbeef";
+	char file_out[] = "deadbeef";
 	//int test = 0xdeadbeef;
 	char file_in[512];
 	fd = open ( "file:test.txt", O_CREAT | O_RDWR, 0);
@@ -97,15 +97,19 @@ void k_startup ()
 	kprintf ( "file descriptor: %d\n", fd);
 	
 	status = write ( fd, file_out, sizeof(file_out));
+	status = write ( fd, file_out, sizeof(file_out));
 	if ( status == 512) {
 		status = read ( fd, file_in, 512);
 	}
-	kprintf("read function\n");
+	kprintf("read function %d\n", status);
 	kprintf("%s\n", file_in);
 
 	strcpy(file_out, "ffffffff");
 	memset(file_in, 0, 512);
-	fd = open ( "file:datotekajakodugaimena.txt", O_CREAT | O_WRONLY, 0);
+
+	//close(fd);
+
+	fd = open ( "file:datotekajakodugaimena.txt", O_CREAT | O_RDWR, 0);
 	if ( fd == -1 ) {
 		kprintf("file exists\n");
 		halt();

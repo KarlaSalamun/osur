@@ -93,7 +93,7 @@ file_t *fopen ( char *name, int flags )
 		file->flags = flags | FILE_OPEN;
 		file->id = id; 
 		id++; 
-		file->blocks_used++;
+		file->blocks_used=0;
 		list_init(&file->blocks);
 
 	 	int status = k_device_send ( file, (file->block <<16) | 1,  0, &_disk); 
@@ -114,6 +114,7 @@ file_t *fopen ( char *name, int flags )
 
 ssize_t file_read ( void *buffer, size_t size, file_t *file ) 
 {
+	char tmp_buffer[512]={[0 ... 511] = 0};
 	if ( !(file->flags & O_RDONLY) )
 	{
 		kprintf("file not open for reading\n");
@@ -125,9 +126,17 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 	for (int i = 0; i<file->blocks_used; i++) 
 	{
 		block = list_get_next ( &block->list );
+		if ( k_device_recv ( tmp_buffer, 
+			(block->block_num << 16) | 1, 0, &_disk) == 512 )
+		{
+			strcat(buffer, tmp_buffer);
+		}
+		else {
+			return -1;
+		}
 	}
 	
-
+	return file->blocks_used * 512;
 
 	//if ( block->block_num )
 
@@ -143,7 +152,7 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 	*/
 	//return read ( 3, buffer, (file->block << 16) | 1);
 	//return disk.recv(&buffer, file->block << 16 | size, 0, &disk);
-	return k_device_recv ( buffer, (block->block_num << 16) | 1, 0, &_disk );		
+	//return k_device_recv ( buffer, (block->block_num << 16) | 1, 0, &_disk );		
 }
 
 ssize_t file_write ( void *buffer, size_t size, file_t *file ) 
