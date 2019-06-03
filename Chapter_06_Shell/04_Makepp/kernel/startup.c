@@ -95,8 +95,7 @@ void k_startup ()
 		halt();
 	}
 	kprintf ( "file descriptor: %d\n", fd);
-	//fd = open ( "file:drugitest.txt", O_CREAT, 0);
-	//kprintf ( "file descriptor: %d\n", fd);
+	
 	status = write ( fd, file_out, sizeof(file_out));
 	if ( status == 512) {
 		status = read ( fd, file_in, 512);
@@ -105,7 +104,7 @@ void k_startup ()
 
 	strcpy(file_out, "ffffffff");
 	memset(file_in, 0, 512);
-	fd = open ( "file:drugitest.txt", O_CREAT, 0);
+	fd = open ( "file:datotekajakodugaimena.txt", O_CREAT | O_WRONLY, 0);
 	if ( fd == -1 ) {
 		kprintf("file exists\n");
 		halt();

@@ -3,7 +3,7 @@
 
 #define FILE_NAME_LEN 15
 
-#define FILE_OPEN ( 1 << 0 )
+#define FILE_OPEN ( 1 << 31 )
 
 struct _file_t_;
 typedef struct _file_t_ file_t;

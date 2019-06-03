@@ -36,6 +36,16 @@ file_t *fopen ( char *name, int flags )
 	//int i, index;
 
 	name += 5;
+	
+	if (strlen(name)>=FILE_NAME_LEN + 4)
+	{
+		memcpy(name, name, FILE_NAME_LEN);
+		name[FILE_NAME_LEN] = '\0';
+		kprintf("%s\n", name);
+		char suffix[] = ".txt\0";
+		strcat(name, suffix);
+	}
+
 	kprintf("%s\n", name);
 
 	file = list_get ( &files, FIRST );
@@ -62,18 +72,18 @@ file_t *fopen ( char *name, int flags )
 			break;
 	}
 */
-	file->block = get_free_block();	
+	//file->block = get_free_block();	
+	file->block = 31 - msb_index(bitmap[0]);
+	bitmap[0] ^= 1 << (31 - file->block%32);
 
-	bitmap[file->block/32] ^= 1 << file->block%32;
-
-	kprintf("bitmap: %d %x\n", file->block/32, bitmap[file->block/32]);
+	kprintf("bitmap: %d %x\n", file->block/32, bitmap[0]);
 
 	if ( flags & O_CREAT )  
 	{ 
 		file = kmalloc ( sizeof ( file_t ) ); 
 		memcpy (file->name, name, strlen(name) ); 
 		file->size = 0; 
-		file->flags = flags;
+		file->flags = flags | FILE_OPEN;
 		file->id = id; 
 		id++; 
 
@@ -83,7 +93,7 @@ file_t *fopen ( char *name, int flags )
 	 		return NULL; 
 	 	}
 		
-	//	file->block +=1;
+		file->block +=1;
 		list_append( &files, file, &file->list );
 	}
 
@@ -93,6 +103,13 @@ file_t *fopen ( char *name, int flags )
 
 ssize_t file_read ( void *buffer, size_t size, file_t *file ) 
 {
+	if ( file->flags & O_WRONLY)
+	{
+		kprintf("file open for writing only\n");
+		return -1;	
+	}
+
+
 	//file_t *file;
 	/*
 	for ( int i = 0; i<16; i++ ) 
@@ -124,7 +141,7 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	//retval = write ( 3, buffer, (file->block << 16) | 1 );
 	retval = k_device_send ( buffer, (file->block << 16) | 1,  0, &_disk);
 	file->block = get_free_block();
-	bitmap[file->block /32] ^= 1 << (file->block % 32) ;
+	bitmap[file->block /32] ^= 1 << (31 - file->block % 32) ;
 	kprintf("redak: %d, stupac %d\n", file->block/32, file->block%32);
 	kprintf("bitmap: %d %x\n", file->block/32, bitmap[file->block /32]);
 	//retval = disk.send(&buffer, file->block << 16 | size, 0, &disk );
@@ -136,14 +153,14 @@ int get_free_block ( void )
 {
 	int i, index;
 
-	for ( i=0; i<128; i++) 
+	for ( i=1; i<128; i++) 
 	{
 		index = msb_index ( bitmap[i] );
 		if (index)
 			break;
 	}
-	kprintf("block: %d\n", i*32 + index);
-	return i*32 + index;
+	kprintf("block: %d\n", i*32 + 31 - index);
+	return i*32 + 31 - index;
 }
 	
 	

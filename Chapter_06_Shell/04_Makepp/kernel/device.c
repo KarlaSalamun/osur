@@ -270,7 +270,7 @@ int sys__open ( char *pathname, int flags, mode_t mode, descriptor_t *desc )
 			return EXIT_FAILURE;
 
 		kobj->kobject = file;
-		kobj->flags = flags;
+		kobj->flags = flags | FILE_OPEN;
 		
 		desc->ptr = kobj;
 		desc->id = file->id;
@@ -364,8 +364,8 @@ static int read_write ( descriptor_t *desc, void *buffer, size_t size, int op )
 
 	/* TODO check permission for requested operation from opening flags */
 
-	switch ( kobj->flags ) {
-		case 1:
+	switch ( kobj->flags & (1<<31) ) {
+		case (1<<31):
 			file = kobj->kobject;	
 			if ( op )
 				retval = file_read ( buffer, size, file );
