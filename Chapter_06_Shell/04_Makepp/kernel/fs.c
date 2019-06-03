@@ -4,12 +4,12 @@
 #include <api/stdio.h>
 #include <kernel/kprint.h>
 #include <types/bits.h>
+#include "time.h"
 
 list_t files;
 
 extern device_t _disk;
 unsigned int *bitmap;
-//unsigned int bitmap[4096/32];
 unsigned int start_addr = 15*512;
 int id = 10;
 int cnt = 0;
@@ -30,6 +30,7 @@ void init_fs (void)
 
 file_t *fopen ( char *name, int flags ) 
 {
+	timespec_t time;
 	file_t *file;
 	//ssize_t size;
 	cnt++;
@@ -73,6 +74,10 @@ file_t *fopen ( char *name, int flags )
 	}
 */
 	//file->block = get_free_block();	
+	kclock_gettime( CLOCK_REALTIME, &time );
+	file->last_used = time.tv_sec;
+	kprintf("last used: %d\n", file->last_used);
+
 	file->block = 31 - msb_index(bitmap[0]);
 	bitmap[0] ^= 1 << (31 - file->block%32);
 
@@ -126,8 +131,13 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 
 ssize_t file_write ( void *buffer, size_t size, file_t *file ) 
 {
+	timespec_t time;
 	int retval;	
 	start_addr+=512;
+
+	kclock_gettime( CLOCK_REALTIME, &time );
+	file->last_modified = time.tv_sec;
+	kprintf("last modified: %d\n", file->last_modified);
 
 	//file_t *file;
 	/*
@@ -159,9 +169,12 @@ int get_free_block ( void )
 		if (index)
 			break;
 	}
+
 	kprintf("block: %d\n", i*32 + 31 - index);
 	return i*32 + 31 - index;
 }
+
+
 	
 	
 	

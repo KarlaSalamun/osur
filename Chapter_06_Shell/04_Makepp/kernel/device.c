@@ -316,7 +316,10 @@ int sys__close ( descriptor_t *desc )
 
 	if ( desc->id >= 10 ) 
 	{
+		//file = kobj->kobject;
+		//file_close(file);
 		kfree_kobject ( kobj );
+		kobj->flags &= ~FILE_OPEN;
 		SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
 	}
 

@@ -1,5 +1,6 @@
 #include <lib/string.h>
 #include <lib/list.h>
+#include "time.h"
 
 #define FILE_NAME_LEN 15
 
@@ -26,9 +27,7 @@ struct _file_t_
 	int last_used;	
 	int block;	
 	list_h list;
-	
-//	list_t *list;
-	
+
 };
 
 void init_fs(void);
