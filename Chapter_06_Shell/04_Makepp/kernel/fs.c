@@ -85,12 +85,16 @@ file_t *fopen ( char *name, int flags )
 
 	if ( flags & O_CREAT )  
 	{ 
-		file = kmalloc ( sizeof ( file_t ) ); 
+		file = kmalloc ( sizeof ( file_t ) );
+		block_t *block;
+		block = kmalloc ( sizeof ( block_t ) ); 
 		memcpy (file->name, name, strlen(name) ); 
 		file->size = 0; 
 		file->flags = flags | FILE_OPEN;
 		file->id = id; 
 		id++; 
+		file->blocks_used++;
+		list_init(&file->blocks);
 
 	 	int status = k_device_send ( file, (file->block <<16) | 1,  0, &_disk); 
 	 	if ( !status ) 
@@ -99,7 +103,9 @@ file_t *fopen ( char *name, int flags )
 	 	}
 		
 		//file->block +=1;
+		//block->block_num = get_free_block();
 		list_append( &files, file, &file->list );
+		list_append( &file->blocks, block, &block->list);
 	}
 
 	/* TODO: update ostale zastavice */
@@ -114,6 +120,17 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 		return -1;	
 	}
 
+	block_t *block;
+	block = list_get( &file->blocks, FIRST );
+	for (int i = 0; i<file->blocks_used; i++) 
+	{
+		block = list_get_next ( &block->list );
+	}
+	
+
+
+	//if ( block->block_num )
+
 
 	//file_t *file;
 	/*
@@ -126,7 +143,7 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 	*/
 	//return read ( 3, buffer, (file->block << 16) | 1);
 	//return disk.recv(&buffer, file->block << 16 | size, 0, &disk);
-	return k_device_recv ( buffer, (file->block << 16) | 1, 0, &_disk );		
+	return k_device_recv ( buffer, (block->block_num << 16) | 1, 0, &_disk );		
 }
 
 ssize_t file_write ( void *buffer, size_t size, file_t *file ) 
@@ -134,6 +151,12 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	timespec_t time;
 	int retval;	
 	start_addr+=512;
+	block_t *block;
+	block = kmalloc ( sizeof ( block_t ) ); 
+	//block = list_get( &file->blocks, FIRST );
+	block->block_num = get_free_block();
+	list_append(&file->blocks, block, &block->list);
+	file->blocks_used++;
 
 	kclock_gettime( CLOCK_REALTIME, &time );
 	file->last_modified = time.tv_sec;
@@ -149,11 +172,11 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	}
 	*/
 	//retval = write ( 3, buffer, (file->block << 16) | 1 );
-	file->block = get_free_block();
-	retval = k_device_send ( buffer, (file->block << 16) | 1,  0, &_disk);
-	bitmap[file->block /32] ^= 1 << (31 - file->block % 32) ;
-	kprintf("redak: %d, stupac %d\n", file->block/32, file->block%32);
-	kprintf("bitmap: %d %x\n", file->block/32, bitmap[file->block /32]);
+	//file->block = get_free_block();
+	retval = k_device_send ( buffer, (block->block_num << 16) | 1,  0, &_disk);
+	bitmap[block->block_num /32] ^= 1 << (31 - block->block_num % 32) ;
+	kprintf("redak: %d, stupac %d\n", block->block_num/32, block->block_num%32);
+	kprintf("bitmap: %d %x\n", block->block_num/32, bitmap[block->block_num /32]);
 	//retval = disk.send(&buffer, file->block << 16 | size, 0, &disk );
 	//file->block++;
 	return retval;

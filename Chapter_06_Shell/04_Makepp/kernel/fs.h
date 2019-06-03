@@ -8,6 +8,8 @@
 
 struct _file_t_;
 typedef struct _file_t_ file_t;
+struct _block_t_;
+typedef struct _block_t_ block_t;
 
 struct _file_t_
 {
@@ -20,14 +22,21 @@ struct _file_t_
 	
 	int flags;
 	int size;
-	int id;	
+	int id;
 	
 	int date_created;
 	int last_modified;
 	int last_used;	
-	int block;	
+	int block;
+	int blocks_used;	
 	list_h list;
+	list_t blocks;
+};
 
+struct _block_t_
+{
+	int block_num;
+	list_h list;
 };
 
 void init_fs(void);

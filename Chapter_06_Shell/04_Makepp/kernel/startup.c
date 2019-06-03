@@ -100,6 +100,7 @@ void k_startup ()
 	if ( status == 512) {
 		status = read ( fd, file_in, 512);
 	}
+	kprintf("read function\n");
 	kprintf("%s\n", file_in);
 
 	strcpy(file_out, "ffffffff");
@@ -114,6 +115,7 @@ void k_startup ()
 	if ( status == 512) {
 		status = read ( fd, file_in, 512);
 	}
+	kprintf("read function\n");
 	kprintf("%s\n", file_in);
 
 	kprintf ( "\nSystem halted!\n" );
