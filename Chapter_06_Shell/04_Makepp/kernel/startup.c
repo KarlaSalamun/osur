@@ -65,8 +65,8 @@ void k_startup ()
 	/* example using disk */
 	int fd = open ("DISK", 0, 0 ), ok = 0;
 	int status;
-	int test = 0xdeadbeef;
-	int test_read = 0;
+	//int test = 0xdeadbeef;
+	//int test_read = 0;
 	if ( fd > 0 ) {
 		char data_out[2048] = {[0 ... 2047] = 5};
 		size_t block = 55, blocks = 2048/512;
@@ -85,16 +85,37 @@ void k_startup ()
 	}
 	if (!ok)
 		kprintf ( "DISK NOT working!\n");
-
+	char file_out[8] = "deadbeef";
+	//int test = 0xdeadbeef;
+	char file_in[512];
 	fd = open ( "file:test.txt", O_CREAT, 0);
+	if ( fd == -1 )
+	{	
+		kprintf("file exists\n");
+		halt();
+	}
 	kprintf ( "file descriptor: %d\n", fd);
 	//fd = open ( "file:drugitest.txt", O_CREAT, 0);
 	//kprintf ( "file descriptor: %d\n", fd);
-	status = write ( fd, &test, sizeof(int) );
+	status = write ( fd, file_out, sizeof(file_out));
 	if ( status == 512) {
-		status = read ( fd, &test_read, sizeof(int));
+		status = read ( fd, file_in, 512);
 	}
-	kprintf("%x\n", test_read);
+	kprintf("%s\n", file_in);
+
+	strcpy(file_out, "ffffffff");
+	memset(file_in, 0, 512);
+	fd = open ( "file:drugitest.txt", O_CREAT, 0);
+	if ( fd == -1 ) {
+		kprintf("file exists\n");
+		halt();
+	}
+	kprintf ( "file descriptor: %d\n", fd);
+	status = write ( fd, file_out, sizeof(file_out) );
+	if ( status == 512) {
+		status = read ( fd, file_in, 512);
+	}
+	kprintf("%s\n", file_in);
 
 	kprintf ( "\nSystem halted!\n" );
 	halt ();

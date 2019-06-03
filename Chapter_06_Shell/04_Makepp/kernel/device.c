@@ -262,13 +262,13 @@ int sys__open ( char *pathname, int flags, mode_t mode, descriptor_t *desc )
 	
 	if ( !strncmp ( pathname, file_prefix, strlen(file_prefix) ) )
 	{
+		kdev = k_device_open ( "DISK", flags );
+		_disk = kdev->dev;
+
 		file = fopen ( pathname, flags );
 		if ( !file ) 
 			return EXIT_FAILURE;
 
-		kdev = k_device_open ( "DISK", flags );
-		_disk = kdev->dev;
-		
 		kobj->kobject = file;
 		kobj->flags = flags;
 		
@@ -369,7 +369,6 @@ static int read_write ( descriptor_t *desc, void *buffer, size_t size, int op )
 			file = kobj->kobject;	
 			if ( op )
 				retval = file_read ( buffer, size, file );
-			
 			else
 				retval = file_write ( buffer, size, file );
 			break;
