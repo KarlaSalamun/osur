@@ -181,22 +181,11 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	}
 
 	else 
-	{/*
-		block = list_get( &file->blocks, FIRST );
-		if (!block)
-		{
-			block = kmalloc ( sizeof (block_t) );
-			block->block_num = get_free_block();
-			list_append(&file->blocks, block, &block->list);
-		}*/
-		//else 
-		//{
+	{
 		for (int i=0; i<file->blocks_used; i++) {
 			if ( !list_get_next ( &block->list ) )
 				break; 
 		}
-
-		//}
 	}
 
 	kprintf("block: %d\n", block->block_num);
