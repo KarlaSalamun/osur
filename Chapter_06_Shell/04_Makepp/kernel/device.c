@@ -283,21 +283,20 @@ int sys__open ( char *pathname, int flags, mode_t mode, descriptor_t *desc )
 	
 		kdev = k_device_open ( pathname, flags );
 
+		if ( !kdev )
+			return EXIT_FAILURE;
+
+		kobj->kobject = kdev;
+		kobj->flags = flags;
+
+		desc->ptr = kobj;
+		desc->id = kdev->id;
+
+		/* add descriptor to device list */
+		list_append ( &kdev->descriptors, kobj, &kobj->spec );
+		
+		SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
 	}
-
-	if ( !kdev )
-		return EXIT_FAILURE;
-
-	kobj->kobject = kdev;
-	kobj->flags = flags;
-
-	desc->ptr = kobj;
-	desc->id = kdev->id;
-
-	/* add descriptor to device list */
-	list_append ( &kdev->descriptors, kobj, &kobj->spec );
-	
-	SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
 }
 
 int sys__close ( descriptor_t *desc )

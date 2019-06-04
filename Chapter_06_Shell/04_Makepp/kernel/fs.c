@@ -11,8 +11,8 @@ list_t files;
 extern device_t _disk;
 unsigned int *bitmap;
 unsigned int start_addr = 15*512;
-int id = 10;
-int cnt = 0;
+int file_cnt = 10;
+//int cnt = 0;
 
 void init_fs (void) 
 {
@@ -30,7 +30,8 @@ file_t *fopen ( char *name, int flags )
 {
 	timespec_t time;
 	file_t *file;
-	cnt++;
+
+	kclock_gettime( CLOCK_REALTIME, &time );
 
 	name += 5;
 	
@@ -52,24 +53,43 @@ file_t *fopen ( char *name, int flags )
 		if ( !strcmp ( name, file->name ) ) 
 		{
 			if ( flags & O_CREAT ) {
-				return NULL;
+				kprintf("Greska: postoji datoteka s tim imenom\n");
 			}
 			file->flags |= flags;
+			file->last_used = time.tv_sec;
 			return file;
 			break;
 		}
 		
 		file = list_get_next ( &file->list );
+	}
+/*
+	for ( int i=0; i<file_cnt; i++) 
+	{
+		char tmp[512];
+		int status = k_device_recv ( tmp, (i <<16) | 1,  0, &_disk );
+		file = ( file_t *)tmp;
+		kprintf("file name: %s\n", file->name);
+		if (!status)
+		{
+			break;
+		}
+		if (  !strcmp ( name, file->name ) ) 
+		{
+			if ( flags & O_CREAT ) {
+				kprintf("Greska: postoji datoteka s tim imenom\n");
+			}
+			file->flags |= flags;
+			file->last_used = time.tv_sec;
+			return file;
+			break;
+		}
 	}	
+*/
 	
-	kclock_gettime( CLOCK_REALTIME, &time );
-	file->last_used = time.tv_sec;
-	kprintf("last used: %d\n", file->last_used);
+	
 
-	file->block = 31 - msb_index(bitmap[0]);
-	bitmap[0] ^= 1 << (31 - file->block%32);
-
-	kprintf("bitmap: %d %x\n", file->block/32, bitmap[0]);
+	//kprintf("bitmap: %d %x\n", file->block/32, bitmap[0]);
 
 	if ( flags & O_CREAT )  
 	{ 
@@ -79,10 +99,15 @@ file_t *fopen ( char *name, int flags )
 		memcpy (file->name, name, strlen(name) ); 
 		file->size = 0; 
 		file->flags = flags | FILE_OPEN;
-		file->id = id; 
-		id++; 
+		file->id = file_cnt; 
+		file_cnt++; 
 		file->blocks_used=0;
 		list_init(&file->blocks);
+
+		file->block = 31 - msb_index(bitmap[0]);
+		bitmap[0] ^= 1 << (31 - file->block%32);
+
+		file->last_used = time.tv_sec;
 
 	 	int status = k_device_send ( file, (file->block <<16) | 1,  0, &_disk); 
 	 	if ( !status ) 
@@ -116,19 +141,20 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 
 	block_t *block;
 	block = list_get( &file->blocks, FIRST );
-	for (int i = 0; i<file->blocks_used; i++) 
+
+	while ( block )
 	{
-		block = list_get_next ( &block->list );
 		if ( k_device_recv ( tmp_buffer, 
 			(block->block_num << 16) | 1, 0, &_disk) == 512 )
 		{
 			strcat(buffer, tmp_buffer);
+			kprintf(" tekst u read %s\n", tmp_buffer);
 		}
-		else {
+		else
 			return -1;
-		} 
+		block = list_get_next( &block->list );
 	}
-	
+
 	return file->blocks_used * 512;
 		
 }
@@ -142,28 +168,35 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	file->size += size;
 	block_t *block;
 
-	if ( file->size >= BLOCK_SIZE ) 
+	//block = kmalloc ( sizeof ( block_t ) ); 
+	block = list_get( &file->blocks, FIRST );
+
+	if ( file->size >= BLOCK_SIZE || !block ) 
 	{
 		block = kmalloc ( sizeof ( block_t ) ); 
 		block->block_num = get_free_block();
 		list_append(&file->blocks, block, &block->list);
 		file->blocks_used++;
+		block_mark_used(block->block_num);
 	}
 
 	else 
-	{
+	{/*
 		block = list_get( &file->blocks, FIRST );
 		if (!block)
 		{
 			block = kmalloc ( sizeof (block_t) );
 			block->block_num = get_free_block();
 			list_append(&file->blocks, block, &block->list);
+		}*/
+		//else 
+		//{
+		for (int i=0; i<file->blocks_used; i++) {
+			if ( !list_get_next ( &block->list ) )
+				break; 
 		}
-		else 
-		{
-		for (int i=0; i<file->blocks_used; i++)
-			block = list_get_next ( &block->list );
-		}
+
+		//}
 	}
 
 	kprintf("block: %d\n", block->block_num);
@@ -181,9 +214,11 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	retval = k_device_recv ( tmp_buffer, (block->block_num << 16) | 1,  0, &_disk);
 	strcat( tmp_buffer, buffer );
 
+	kprintf(" tekst u write %s\n", tmp_buffer);
+
 	retval = k_device_send ( tmp_buffer, (block->block_num << 16) | 1,  0, &_disk);
+	// FIXME: makni mark used od tu
 	
-	block_mark_used(block->block_num);
 	kprintf("redak: %d, stupac %d\n", block->block_num/32, block->block_num%32);
 	kprintf("bitmap: %d %x\n", block->block_num/32, bitmap[block->block_num /32]);
 	
@@ -197,6 +232,7 @@ int file_close ( file_t *file )
 	 		return -1; 
 	 	else
 	 		return 0;
+	 list_remove( &files, 0, &file->list ); 
 }
 
 int get_free_block ( void )
