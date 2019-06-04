@@ -3,6 +3,7 @@
 #include "time.h"
 
 #define FILE_NAME_LEN 15
+#define BLOCK_SIZE 512
 
 #define FILE_OPEN ( 1 << 31 )
 
@@ -43,6 +44,7 @@ void init_fs(void);
 file_t *fopen ( char *name, int flags );
 ssize_t file_read ( void *buffer, size_t size, file_t *file );
 ssize_t file_write ( void *buffer, size_t size, file_t *file );
+int file_close ( file_t *file );
 
 int get_free_block ( void );
 void block_mark_used ( unsigned int block );

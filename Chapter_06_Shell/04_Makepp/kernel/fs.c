@@ -74,8 +74,8 @@ file_t *fopen ( char *name, int flags )
 	if ( flags & O_CREAT )  
 	{ 
 		file = kmalloc ( sizeof ( file_t ) );
-		block_t *block;
-		block = kmalloc ( sizeof ( block_t ) ); 
+		//block_t *block;
+		//block = kmalloc ( sizeof ( block_t ) ); 
 		memcpy (file->name, name, strlen(name) ); 
 		file->size = 0; 
 		file->flags = flags | FILE_OPEN;
@@ -91,7 +91,7 @@ file_t *fopen ( char *name, int flags )
 	 	}
 		
 		list_append( &files, file, &file->list );
-		list_append( &file->blocks, block, &block->list);
+		//list_append( &file->blocks, block, &block->list);
 
 		//int day = time.tv_sec / (3600*24);
 		int tmp = 40348800;
@@ -138,24 +138,65 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	timespec_t time;
 	int retval;	
 	start_addr+=512;
+	char tmp_buffer[512];
+	file->size += size;
+	block_t *block;
 
+	if ( file->size >= BLOCK_SIZE ) 
+	{
+		block = kmalloc ( sizeof ( block_t ) ); 
+		block->block_num = get_free_block();
+		list_append(&file->blocks, block, &block->list);
+		file->blocks_used++;
+	}
+
+	else 
+	{
+		block = list_get( &file->blocks, FIRST );
+		if (!block)
+		{
+			block = kmalloc ( sizeof (block_t) );
+			block->block_num = get_free_block();
+			list_append(&file->blocks, block, &block->list);
+		}
+		else 
+		{
+		for (int i=0; i<file->blocks_used; i++)
+			block = list_get_next ( &block->list );
+		}
+	}
+
+	kprintf("block: %d\n", block->block_num);
+/*
 	block_t *block;
 	block = kmalloc ( sizeof ( block_t ) ); 
 	block->block_num = get_free_block();
 	list_append(&file->blocks, block, &block->list);
 	file->blocks_used++;
-
+*/
 	kclock_gettime( CLOCK_REALTIME, &time );
 	file->last_modified = time.tv_sec;
 	kprintf("last modified: %d\n", file->last_modified);
 
-	retval = k_device_send ( buffer, (block->block_num << 16) | 1,  0, &_disk);
+	retval = k_device_recv ( tmp_buffer, (block->block_num << 16) | 1,  0, &_disk);
+	strcat( tmp_buffer, buffer );
+
+	retval = k_device_send ( tmp_buffer, (block->block_num << 16) | 1,  0, &_disk);
 	
 	block_mark_used(block->block_num);
 	kprintf("redak: %d, stupac %d\n", block->block_num/32, block->block_num%32);
 	kprintf("bitmap: %d %x\n", block->block_num/32, bitmap[block->block_num /32]);
 	
 	return retval;
+}
+
+int file_close ( file_t *file )
+{
+	int status = k_device_send ( file, (file->block <<16) | 1,  0, &_disk); 
+	 	if ( !status )  
+	 		return -1; 
+	 	else
+	 		return 0;
 }
 
 int get_free_block ( void )

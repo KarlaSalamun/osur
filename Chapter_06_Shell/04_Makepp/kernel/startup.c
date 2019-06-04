@@ -95,8 +95,9 @@ void k_startup ()
 		halt();
 	}
 	kprintf ( "file descriptor: %d\n", fd);
-	
+	printf("pozivam write\n");
 	status = write ( fd, file_out, sizeof(file_out));
+	printf("pozivam write\n");
 	status = write ( fd, file_out, sizeof(file_out));
 	if ( status == 512) {
 		status = read ( fd, file_in, 512);
@@ -107,8 +108,8 @@ void k_startup ()
 	strcpy(file_out, "ffffffff");
 	memset(file_in, 0, 512);
 
-	//close(fd);
-
+	close(fd);
+/*
 	fd = open ( "file:datotekajakodugaimena.txt", O_CREAT | O_RDWR, 0);
 	if ( fd == -1 ) {
 		kprintf("file exists\n");
@@ -121,7 +122,7 @@ void k_startup ()
 	}
 	kprintf("read function\n");
 	kprintf("%s\n", file_in);
-
+*/
 	kprintf ( "\nSystem halted!\n" );
 	halt ();
 }

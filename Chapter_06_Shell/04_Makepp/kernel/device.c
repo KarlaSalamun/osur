@@ -305,6 +305,8 @@ int sys__close ( descriptor_t *desc )
 	kdevice_t *kdev;
 	kobject_t *kobj;
 
+	file_t *file;
+
 	SYS_ENTRY();
 
 	ASSERT_ERRNO_AND_EXIT ( desc, EINVAL );
@@ -314,6 +316,18 @@ int sys__close ( descriptor_t *desc )
 	ASSERT_ERRNO_AND_EXIT ( list_find ( &kobjects, &kobj->list ),
 				EINVAL );
 
+	if (  kobj->flags & (1<<31) )
+	{
+		file = kobj->kobject;
+		int status = file_close( file );
+		kobj->flags &= ~FILE_OPEN;
+		kfree_kobject ( kobj );
+		if (!status)
+			SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
+		else 
+			return -1;
+	}
+/*
 	if ( desc->id >= 10 ) 
 	{
 		//file = kobj->kobject;
@@ -322,7 +336,7 @@ int sys__close ( descriptor_t *desc )
 		kobj->flags &= ~FILE_OPEN;
 		SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
 	}
-
+*/
 	kdev = kobj->kobject;
 	ASSERT_ERRNO_AND_EXIT ( kdev && kdev->id == desc->id, EINVAL );
 
