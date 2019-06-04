@@ -23,8 +23,6 @@ void init_fs (void)
 	{	
 		bitmap[i] = 0xffffffff;
 	}
-
-	//bitmap[0] = 0x0;
 }
 
 
@@ -32,9 +30,7 @@ file_t *fopen ( char *name, int flags )
 {
 	timespec_t time;
 	file_t *file;
-	//ssize_t size;
 	cnt++;
-	//int i, index;
 
 	name += 5;
 	
@@ -65,15 +61,7 @@ file_t *fopen ( char *name, int flags )
 		
 		file = list_get_next ( &file->list );
 	}	
-/*
-	for ( i=0; i<sizeof(bitmap); i++) 
-	{
-		index = msb_index ( bitmap[i] );
-		if (index)
-			break;
-	}
-*/
-	//file->block = get_free_block();	
+	
 	kclock_gettime( CLOCK_REALTIME, &time );
 	file->last_used = time.tv_sec;
 	kprintf("last used: %d\n", file->last_used);
@@ -102,10 +90,15 @@ file_t *fopen ( char *name, int flags )
 	 		return NULL; 
 	 	}
 		
-		//file->block +=1;
-		//block->block_num = get_free_block();
 		list_append( &files, file, &file->list );
 		list_append( &file->blocks, block, &block->list);
+
+		//int day = time.tv_sec / (3600*24);
+		int tmp = 40348800;
+		int year = tmp / (3600*24*365);
+		int month = (tmp % (3600*24*365)) / (3600*24*30);
+		int day = (tmp % (3600*24*365)) / (month*30*24*3600);
+		kprintf("time: %d %d %d\n", year, month, day);
 	}
 
 	/* TODO: update ostale zastavice */
@@ -133,26 +126,11 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 		}
 		else {
 			return -1;
-		}
+		} 
 	}
 	
 	return file->blocks_used * 512;
-
-	//if ( block->block_num )
-
-
-	//file_t *file;
-	/*
-	for ( int i = 0; i<16; i++ ) 
-	{
-		disk.recv(&file, i<<16 | 0xffff, 0, &disk);
-		if ( file->id == id ) 
-			break;
-	}
-	*/
-	//return read ( 3, buffer, (file->block << 16) | 1);
-	//return disk.recv(&buffer, file->block << 16 | size, 0, &disk);
-	//return k_device_recv ( buffer, (block->block_num << 16) | 1, 0, &_disk );		
+		
 }
 
 ssize_t file_write ( void *buffer, size_t size, file_t *file ) 
@@ -160,9 +138,9 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	timespec_t time;
 	int retval;	
 	start_addr+=512;
+
 	block_t *block;
 	block = kmalloc ( sizeof ( block_t ) ); 
-	//block = list_get( &file->blocks, FIRST );
 	block->block_num = get_free_block();
 	list_append(&file->blocks, block, &block->list);
 	file->blocks_used++;
@@ -171,23 +149,12 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	file->last_modified = time.tv_sec;
 	kprintf("last modified: %d\n", file->last_modified);
 
-	//file_t *file;
-	/*
-	for ( int i = 0; i<16; i++ ) 
-	{
-		disk.recv(&file, i<<16 | size, 0, &disk);
-		if ( file->id == id ) 
-			break;
-	}
-	*/
-	//retval = write ( 3, buffer, (file->block << 16) | 1 );
-	//file->block = get_free_block();
 	retval = k_device_send ( buffer, (block->block_num << 16) | 1,  0, &_disk);
-	bitmap[block->block_num /32] ^= 1 << (31 - block->block_num % 32) ;
+	
+	block_mark_used(block->block_num);
 	kprintf("redak: %d, stupac %d\n", block->block_num/32, block->block_num%32);
 	kprintf("bitmap: %d %x\n", block->block_num/32, bitmap[block->block_num /32]);
-	//retval = disk.send(&buffer, file->block << 16 | size, 0, &disk );
-	//file->block++;
+	
 	return retval;
 }
 
@@ -206,7 +173,7 @@ int get_free_block ( void )
 	return i*32 + 31 - index;
 }
 
-
-	
-	
-	
+void block_mark_used (unsigned int block)
+{
+	bitmap[block/32] ^= 1 << (31 - block % 32);
+}

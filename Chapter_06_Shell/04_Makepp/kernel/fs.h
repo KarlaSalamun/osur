@@ -24,7 +24,7 @@ struct _file_t_
 	int size;
 	int id;
 	
-	int date_created;
+	char date_created[11]; // dd/mm/yyyy format
 	int last_modified;
 	int last_used;	
 	int block;
@@ -45,4 +45,5 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file );
 ssize_t file_write ( void *buffer, size_t size, file_t *file );
 
 int get_free_block ( void );
+void block_mark_used ( unsigned int block );
 	
