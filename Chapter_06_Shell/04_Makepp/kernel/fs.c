@@ -11,8 +11,14 @@ list_t files;
 extern device_t _disk;
 unsigned int *bitmap;
 unsigned int start_addr = 15*512;
-int file_cnt = 10;
+int file_id = 10;
+int file_cnt = 0;
 //int cnt = 0;
+
+static int get_free_block ( void );
+static void block_mark_used ( unsigned int block );
+static void check_file_from_disk ( char *name, char *tmp, file_t *file );
+static file_t *check_open_file ( char *name );
 
 void init_fs (void) 
 {
@@ -28,8 +34,10 @@ void init_fs (void)
 
 file_t *fopen ( char *name, int flags ) 
 {
+
 	timespec_t time;
 	file_t *file;
+	char tmp[512];
 
 	kclock_gettime( CLOCK_REALTIME, &time );
 
@@ -39,76 +47,40 @@ file_t *fopen ( char *name, int flags )
 	{
 		memcpy(name, name, FILE_NAME_LEN);
 		name[FILE_NAME_LEN] = '\0';
-		kprintf("%s\n", name);
 		char suffix[] = ".txt\0";
 		strcat(name, suffix);
 	}
 
-	kprintf("%s\n", name);
-
-	file = list_get ( &files, FIRST );
-	
-	while(file) 
+	file = check_open_file ( name );
+	if (!file)
 	{
-		if ( !strcmp ( name, file->name ) ) 
-		{
-			if ( flags & O_CREAT ) {
-				kprintf("Greska: postoji datoteka s tim imenom\n");
-			}
-			file->flags |= flags;
-			file->last_used = time.tv_sec;
-			return file;
-			break;
-		}
-		
-		file = list_get_next ( &file->list );
+		check_file_from_disk ( name, tmp, file );
 	}
-/*
-	for ( int i=0; i<file_cnt; i++) 
-	{
-		char tmp[512];
-		int status = k_device_recv ( tmp, (i <<16) | 1,  0, &_disk );
-		file = ( file_t *)tmp;
-		kprintf("file name: %s\n", file->name);
-		if (!status)
-		{
-			break;
-		}
-		if (  !strcmp ( name, file->name ) ) 
-		{
-			if ( flags & O_CREAT ) {
-				kprintf("Greska: postoji datoteka s tim imenom\n");
-			}
-			file->flags |= flags;
-			file->last_used = time.tv_sec;
-			return file;
-			break;
-		}
-	}	
-*/
-	
-	
 
-	//kprintf("bitmap: %d %x\n", file->block/32, bitmap[0]);
 
 	if ( flags & O_CREAT )  
 	{ 
-		file = kmalloc ( sizeof ( file_t ) );
-		//block_t *block;
-		//block = kmalloc ( sizeof ( block_t ) ); 
-		memcpy (file->name, name, strlen(name) ); 
+		if ( file )
+		{
+			kprintf("Greska: postoji datoteka s tim imenom\n");
+			return NULL;
+		}
+
+		file = kmalloc ( sizeof ( file_t ) ); 
+		strcpy (file->name, name ); 
 		file->size = 0; 
-		file->flags = flags | FILE_OPEN;
-		file->id = file_cnt; 
+		file->flags = FILE_OPEN;
+		file->id = file_id; 
 		file_cnt++; 
+		file_id++;
 		file->blocks_used=0;
 		list_init(&file->blocks);
 
 		file->block = 31 - msb_index(bitmap[0]);
 		bitmap[0] ^= 1 << (31 - file->block%32);
 
-		file->last_used = time.tv_sec;
-
+		file->time_created = file->last_used = file->last_modified = time.tv_sec;
+	
 	 	int status = k_device_send ( file, (file->block <<16) | 1,  0, &_disk); 
 	 	if ( !status ) 
 	 	{ 
@@ -116,26 +88,27 @@ file_t *fopen ( char *name, int flags )
 	 	}
 		
 		list_append( &files, file, &file->list );
-		//list_append( &file->blocks, block, &block->list);
-
-		//int day = time.tv_sec / (3600*24);
-		int tmp = 40348800;
-		int year = tmp / (3600*24*365);
-		int month = (tmp % (3600*24*365)) / (3600*24*30);
-		int day = (tmp % (3600*24*365)) / (month*30*24*3600);
-		kprintf("time: %d %d %d\n", year, month, day);
 	}
 
-	/* TODO: update ostale zastavice */
-	return file;	
+	file->flags |= flags;
+	file->last_used = time.tv_sec;
+	return file;
+
 }
 
 ssize_t file_read ( void *buffer, size_t size, file_t *file ) 
 {
 	char tmp_buffer[512]={[0 ... 511] = 0};
+	int i=0;
+	timespec_t time;
+
+	kclock_gettime( CLOCK_REALTIME, &time );
+
+	file->last_used = time.tv_sec;
+
 	if ( !(file->flags & O_RDONLY) )
 	{
-		kprintf("file not open for reading\n");
+		kprintf("file isn't open for reading\n");
 		return -1;	
 	}
 
@@ -148,19 +121,24 @@ ssize_t file_read ( void *buffer, size_t size, file_t *file )
 			(block->block_num << 16) | 1, 0, &_disk) == 512 )
 		{
 			strcat(buffer, tmp_buffer);
-			kprintf(" tekst u read %s\n", tmp_buffer);
+			//kprintf(" tekst u read %s\n", tmp_buffer);
 		}
 		else
 			return -1;
 		block = list_get_next( &block->list );
+		i++;
 	}
-
-	return file->blocks_used * 512;
-		
+	return i * 512;
 }
 
 ssize_t file_write ( void *buffer, size_t size, file_t *file ) 
 {
+
+	if ( !(file->flags & O_RDONLY) ) {
+		kprintf("file isn't open for writing\n");
+		return -1;
+	}
+
 	timespec_t time;
 	int retval;	
 	start_addr+=512;
@@ -189,26 +167,19 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 	}
 
 	kprintf("block: %d\n", block->block_num);
-/*
-	block_t *block;
-	block = kmalloc ( sizeof ( block_t ) ); 
-	block->block_num = get_free_block();
-	list_append(&file->blocks, block, &block->list);
-	file->blocks_used++;
-*/
+
 	kclock_gettime( CLOCK_REALTIME, &time );
 	file->last_modified = time.tv_sec;
-	kprintf("last modified: %d\n", file->last_modified);
+	//kprintf("last modified: %d\n", file->last_modified);
 
 	retval = k_device_recv ( tmp_buffer, (block->block_num << 16) | 1,  0, &_disk);
 	strcat( tmp_buffer, buffer );
 
-	kprintf(" tekst u write %s\n", tmp_buffer);
+	//kprintf(" tekst u write %s\n", tmp_buffer);
 
 	retval = k_device_send ( tmp_buffer, (block->block_num << 16) | 1,  0, &_disk);
-	// FIXME: makni mark used od tu
 	
-	kprintf("redak: %d, stupac %d\n", block->block_num/32, block->block_num%32);
+	//kprintf("redak: %d, stupac %d\n", block->block_num/32, block->block_num%32);
 	kprintf("bitmap: %d %x\n", block->block_num/32, bitmap[block->block_num /32]);
 	
 	return retval;
@@ -216,15 +187,20 @@ ssize_t file_write ( void *buffer, size_t size, file_t *file )
 
 int file_close ( file_t *file )
 {
-	int status = k_device_send ( file, (file->block <<16) | 1,  0, &_disk); 
-	 	if ( !status )  
-	 		return -1; 
-	 	else
-	 		return 0;
-	 list_remove( &files, 0, &file->list ); 
+	//list_remove( &files, 0, &file->list );
+	//file->flags ^= FILE_OPEN;
+	file->flags = 0;
+	//kprintf("close: %s\n", file->name);
+	if ( !k_device_send ( file, (file->block <<16) | 1,  0, &_disk) )  {
+		return -1;
+	}
+	else {
+	 	return 0;
+	}
+	 	
 }
 
-int get_free_block ( void )
+static int get_free_block ( void )
 {
 	int i, index;
 
@@ -235,11 +211,51 @@ int get_free_block ( void )
 			break;
 	}
 
-	kprintf("block: %d\n", i*32 + 31 - index);
+	//kprintf("block: %d\n", i*32 + 31 - index);
 	return i*32 + 31 - index;
 }
 
-void block_mark_used (unsigned int block)
+static void block_mark_used (unsigned int block)
 {
 	bitmap[block/32] ^= 1 << (31 - block % 32);
 }
+
+/* checks if a file with given name exists
+	returns NULL if not, pointer to file otherwise
+*/
+
+static file_t *check_open_file ( char *name )
+{
+	file_t *file;
+	file = list_get ( &files, FIRST );
+	
+	while(file) 
+	{
+		if ( !strcmp(file->name, name) ) 
+		{
+			return file;
+		}
+		file = list_get_next ( &file->list );
+	}
+	return NULL;
+}
+
+static void check_file_from_disk ( char *name, char *tmp, file_t *file )
+{
+	for ( int i=0; i<file_cnt; i++) 
+	{
+		
+		int status = k_device_recv ( tmp, (i <<16) | 1,  0, &_disk );
+		file = ( file_t *)tmp;
+		//kprintf("file name: %s\n", file->name);
+		if (!status)
+		{
+			break;
+		}
+		if (  !strcmp ( name, file->name ) ) 
+		{
+			return;
+		}
+	}
+	file = NULL;
+}	

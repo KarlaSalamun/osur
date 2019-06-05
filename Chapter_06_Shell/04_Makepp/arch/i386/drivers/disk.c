@@ -3,6 +3,7 @@
 #include <arch/device.h>
 #include <kernel/memory.h>
 #include <kernel/errno.h>
+#include <kernel/kprint.h>
 #include <lib/string.h>
 
 #define BLOCK_SIZE	512

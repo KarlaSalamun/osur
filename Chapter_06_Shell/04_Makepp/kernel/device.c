@@ -262,8 +262,11 @@ int sys__open ( char *pathname, int flags, mode_t mode, descriptor_t *desc )
 	
 	if ( !strncmp ( pathname, file_prefix, strlen(file_prefix) ) )
 	{
-		kdev = k_device_open ( "DISK", flags );
-		_disk = kdev->dev;
+		if ( !(_disk.flags & DEV_OPEN ))
+		{
+			kdev = k_device_open ( "DISK", flags );
+			_disk = kdev->dev;
+		}
 
 		file = fopen ( pathname, flags );
 		if ( !file ) 
@@ -326,16 +329,7 @@ int sys__close ( descriptor_t *desc )
 		else 
 			return -1;
 	}
-/*
-	if ( desc->id >= 10 ) 
-	{
-		//file = kobj->kobject;
-		//file_close(file);
-		kfree_kobject ( kobj );
-		kobj->flags &= ~FILE_OPEN;
-		SYS_EXIT ( EXIT_SUCCESS, EXIT_SUCCESS );
-	}
-*/
+
 	kdev = kobj->kobject;
 	ASSERT_ERRNO_AND_EXIT ( kdev && kdev->id == desc->id, EINVAL );
 

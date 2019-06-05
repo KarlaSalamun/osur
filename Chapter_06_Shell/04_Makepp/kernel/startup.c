@@ -67,6 +67,7 @@ void k_startup ()
 	int status;
 	//int test = 0xdeadbeef;
 	//int test_read = 0;
+	
 	if ( fd > 0 ) {
 		char data_out[2048] = {[0 ... 2047] = 5};
 		size_t block = 55, blocks = 2048/512;
@@ -77,7 +78,7 @@ void k_startup ()
 			status = read ( fd, data_in, (block << 16) | blocks);
 			if ( status == blocks * 512 ) {
 				if ( memcmp ( data_out, data_in, 2048 ) == 0 ) {
-					kprintf ( "DISK working OK! %d\n", fd);
+					kprintf ( "DISK working OK!\n");
 					ok = 1;
 				}
 			}
@@ -85,6 +86,8 @@ void k_startup ()
 	}
 	if (!ok)
 		kprintf ( "DISK NOT working!\n");
+
+	
 
 /*
 	fd = open ( "file:datotekajakodugaimena.txt", O_CREAT | O_RDWR, 0);
